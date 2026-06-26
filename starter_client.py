@@ -51,7 +51,17 @@ class Configuration:
             JSONDecodeError: If configuration file is invalid JSON.
             ValueError: If configuration file is missing required fields.
         """
-        # complete
+        file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {file_path}")
+
+        with open(file_path, 'r') as f:
+            config = json.load(f)
+
+        if "mcpServers" not in config:
+            raise ValueError("Configuration file missing 'mcpServers' field")
+
+        return config
 
     @property
     def anthropic_api_key(self) -> str:
@@ -85,8 +95,11 @@ class Server:
         if command is None:
             raise ValueError("The command must be a valid string and cannot be None.")
 
-        # complete params
-        server_params = StdioServerParameters()
+        server_params = StdioServerParameters(
+            command=command,
+            args=self.config.get("args", []),
+            env={**os.environ, **self.config.get("env", {})},
+        )
         try:
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
             read, write = stdio_transport
@@ -108,7 +121,17 @@ class Server:
         Raises:
             RuntimeError: If the server is not initialized.
         """
-        # complete
+        if not self.session:
+            raise RuntimeError(f"Server '{self.name}' is not initialized")
+        response = await self.session.list_tools()
+        return [
+            ToolDefinition(
+                name=tool.name,
+                description=tool.description or "",
+                input_schema=tool.inputSchema,
+            )
+            for tool in response.tools
+        ]
 
     async def execute_tool(
         self,
@@ -132,7 +155,20 @@ class Server:
             RuntimeError: If server is not initialized.
             Exception: If tool execution fails after all retries.
         """
-        # complete
+        if not self.session:
+            raise RuntimeError(f"Server '{self.name}' is not initialized")
+
+        last_error = None
+        for attempt in range(retries + 1):
+            try:
+                result = await self.session.call_tool(tool_name, arguments)
+                return result
+            except Exception as e:
+                last_error = e
+                if attempt < retries:
+                    logging.warning(f"Tool '{tool_name}' failed (attempt {attempt + 1}), retrying in {delay}s: {e}")
+                    await asyncio.sleep(delay)
+        raise last_error
 
     async def cleanup(self) -> None:
         """Clean up server resources."""
@@ -233,7 +269,31 @@ class DataExtractor:
             pricing_data = json.loads(extraction_response)
             
             for plan in pricing_data.get("plans", []):
-                # complete
+                def _sql_escape(val):
+                    if val is None:
+                        return "NULL"
+                    s = str(val).replace("'", "''")
+                    return f"'{s}'"
+
+                company = _sql_escape(pricing_data.get("company_name", "unknown"))
+                plan_name = _sql_escape(plan.get("plan_name", "unknown"))
+                input_tokens = _sql_escape(plan.get("input_tokens"))
+                output_tokens = _sql_escape(plan.get("output_tokens"))
+                currency = _sql_escape(plan.get("currency", "USD"))
+                billing_period = _sql_escape(plan.get("billing_period", ""))
+                features = _sql_escape(json.dumps(plan.get("features", [])))
+                limitations = _sql_escape(plan.get("limitations", ""))
+                source = _sql_escape(user_query)
+
+                await self.sqlite_server.execute_tool("write_query", {
+                    "query": f"""
+                    INSERT INTO pricing_plans
+                        (company_name, plan_name, input_tokens, output_tokens,
+                         currency, billing_period, features, limitations, source_query)
+                    VALUES ({company}, {plan_name}, {input_tokens}, {output_tokens},
+                            {currency}, {billing_period}, {features}, {limitations}, {source})
+                    """,
+                })
             
             logger.info(f"Stored {len(pricing_data.get('plans', []))} pricing plans")
             
@@ -265,7 +325,7 @@ class ChatSession:
         messages = [{'role': 'user', 'content': query}]
         response = self.anthropic.messages.create(
             max_tokens=2024,
-            model='<ENTER_MODEL_NAME>', 
+            model='claude-sonnet-4-5-20250929', 
             tools=self.available_tools,
             messages=messages
         )
@@ -273,15 +333,80 @@ class ChatSession:
         full_response = ""
         source_url = None
         used_web_search = False
-        
+        max_iterations = 25
+        iteration = 0
+
         process_query = True
         while process_query:
-            assistant_content = []
+            iteration += 1
+            if iteration > max_iterations:
+                print("\n[Max tool iterations reached]", flush=True)
+                break
+            if response.stop_reason == "end_turn":
+                process_query = False
+
+            # Collect all content blocks from this response
+            assistant_content = list(response.content)
+            tool_results = []
+
             for content in response.content:
                 if content.type == 'text':
-                    # complete
+                    full_response += content.text
+                    print(content.text, end="", flush=True)
                 elif content.type == 'tool_use':
-                    # complete
+                    tool_name = content.name
+                    tool_args = content.input
+
+                    server_name = self.tool_to_server.get(tool_name)
+                    if not server_name:
+                        logging.error(f"No server found for tool: {tool_name}")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: No server found for tool '{tool_name}'"
+                        })
+                        continue
+
+                    server = next((s for s in self.servers if s.name == server_name), None)
+                    if not server:
+                        logging.error(f"Server '{server_name}' not found")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: Server '{server_name}' not found"
+                        })
+                        continue
+
+                    try:
+                        result = await server.execute_tool(tool_name, tool_args)
+                        result_text = ""
+                        for block in result.content:
+                            if hasattr(block, "text"):
+                                result_text += block.text
+
+                        extracted_url = self._extract_url_from_result(result_text)
+                        if extracted_url:
+                            source_url = extracted_url
+
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': result_text
+                        })
+                    except Exception as e:
+                        logging.error(f"Error executing tool {tool_name}: {e}")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: {e}"
+                        })
+
+            # If there were tool calls, append assistant + tool results and continue
+            if tool_results and process_query:
+                messages.append({'role': 'assistant', 'content': assistant_content})
+                messages.append({'role': 'user', 'content': tool_results})
+                response = self.anthropic.messages.create(
+                    max_tokens=2024,
+                    model='claude-sonnet-4-5-20250929',
+                    tools=self.available_tools,
+                    messages=messages,
+                )
         
         if self.data_extractor and full_response.strip():
             await self.data_extractor.extract_and_store_data(query, full_response.strip(), source_url)
@@ -323,7 +448,12 @@ class ChatSession:
             return
             
         try:
-            # complete
+            result = await self.sqlite_server.execute_tool("read_query", {
+                "query": "SELECT * FROM pricing_plans ORDER BY created_at DESC LIMIT 20"
+            })
+            for block in result.content:
+                if hasattr(block, "text"):
+                    print(block.text)
         except Exception as e:
             print(f"Error showing data: {e}")
 
