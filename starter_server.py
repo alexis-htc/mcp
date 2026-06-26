@@ -87,19 +87,19 @@ def scrape_websites(
         safe_name = provider_name.replace(" ", "_").replace(".", "_").lower()
         domain = urlparse(url).netloc
 
-        # Skip if already scraped
-        if safe_name in metadata:
+        # Skip if already successfully scraped
+        if safe_name in metadata and metadata[safe_name].get("success") == "true":
             logger.info(f"Provider '{safe_name}' already scraped, skipping. Delete entry to re-scrape.")
             scraped_providers.append(safe_name)
             continue
 
         logger.info(f"Scraping {provider_name} at {url}...")
         try:
-            result = app.scrape_url(url, params={'formats': formats})
+            result = app.scrape(url, formats=formats)
 
             content_files = {}
             for fmt in formats:
-                content = result.get(fmt, "")
+                content = getattr(result, fmt, None) or ""
                 if content:
                     filename = f"{safe_name}_{fmt}.txt"
                     filepath = os.path.join(path, filename)
@@ -115,8 +115,8 @@ def scrape_websites(
                 "formats": formats,
                 "success": "true",
                 "content_files": content_files,
-                "title": result.get("metadata", {}).get("title", ""),
-                "description": result.get("metadata", {}).get("description", ""),
+                "title": getattr(getattr(result, 'metadata', None), 'title', '') or '',
+                "description": getattr(getattr(result, 'metadata', None), 'description', '') or '',
             }
 
             scraped_providers.append(safe_name)
