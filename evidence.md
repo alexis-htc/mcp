@@ -55,7 +55,7 @@ Compare cloudrift ai and deepinfra's costs for deepseek v3
 
 **Screenshot 2 - Comparison Output:**
 
-![Test 2 - Compare Pricing](https://app.devin.ai/attachments/c6b84dd1-3420-4109-8fcd-7379c7b6e14e/ss_2e4d1e9f.png)
+![Test 2 - Compare Pricing](https://app.devin.ai/attachments/9ca96e84-4c5c-4245-9f4a-c7e7584aa0bb/ss_9dd92ef7.png)
 
 ---
 
@@ -74,7 +74,7 @@ show data
 
 **Screenshot 3 - Database Output:**
 
-![Test 3 - Show Data](https://app.devin.ai/attachments/d3c96b95-ffa0-4268-8a72-dc41c70a8e21/ss_28b12405.png)
+![Test 3 - Show Data](https://app.devin.ai/attachments/f1fc6cc2-f8ab-42b2-8160-da056eaebe2e/ss_307562e0.png)
 
 **Database contents (verified via Python):**
 
