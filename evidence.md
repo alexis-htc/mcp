@@ -22,7 +22,7 @@ scrape these sites: {'cloudrift': 'https://www.cloudrift.ai/inference', 'deepinf
 
 **Screenshot 1 - Scraping Output:**
 
-![Test 1 - Scrape 4 Websites](https://app.devin.ai/attachments/fc469f2f-bc44-4484-86a8-9985ee905f4c/ss_40577822.png)
+![Test 1 - Scrape 4 Websites](screenshots/test1_scrape.png)
 
 **Key log lines visible:**
 - `Successfully scraped cloudrift`
@@ -55,7 +55,7 @@ Compare cloudrift ai and deepinfra's costs for deepseek v3
 
 **Screenshot 2 - Comparison Output:**
 
-![Test 2 - Compare Pricing](https://app.devin.ai/attachments/9ca96e84-4c5c-4245-9f4a-c7e7584aa0bb/ss_9dd92ef7.png)
+![Test 2 - Compare Pricing](screenshots/test2_compare.png)
 
 ---
 
@@ -74,7 +74,7 @@ show data
 
 **Screenshot 3 - Database Output:**
 
-![Test 3 - Show Data](https://app.devin.ai/attachments/f1fc6cc2-f8ab-42b2-8160-da056eaebe2e/ss_307562e0.png)
+![Test 3 - Show Data](screenshots/test3_showdata.png)
 
 **Database contents (verified via Python):**
 
