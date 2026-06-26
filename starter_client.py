@@ -269,24 +269,30 @@ class DataExtractor:
             pricing_data = json.loads(extraction_response)
             
             for plan in pricing_data.get("plans", []):
+                def _sql_escape(val):
+                    if val is None:
+                        return "NULL"
+                    s = str(val).replace("'", "''")
+                    return f"'{s}'"
+
+                company = _sql_escape(pricing_data.get("company_name", "unknown"))
+                plan_name = _sql_escape(plan.get("plan_name", "unknown"))
+                input_tokens = _sql_escape(plan.get("input_tokens"))
+                output_tokens = _sql_escape(plan.get("output_tokens"))
+                currency = _sql_escape(plan.get("currency", "USD"))
+                billing_period = _sql_escape(plan.get("billing_period", ""))
+                features = _sql_escape(json.dumps(plan.get("features", [])))
+                limitations = _sql_escape(plan.get("limitations", ""))
+                source = _sql_escape(user_query)
+
                 await self.sqlite_server.execute_tool("write_query", {
-                    "query": """
+                    "query": f"""
                     INSERT INTO pricing_plans
                         (company_name, plan_name, input_tokens, output_tokens,
                          currency, billing_period, features, limitations, source_query)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES ({company}, {plan_name}, {input_tokens}, {output_tokens},
+                            {currency}, {billing_period}, {features}, {limitations}, {source})
                     """,
-                    "params": [
-                        pricing_data.get("company_name", "unknown"),
-                        plan.get("plan_name", "unknown"),
-                        plan.get("input_tokens"),
-                        plan.get("output_tokens"),
-                        plan.get("currency", "USD"),
-                        plan.get("billing_period", ""),
-                        json.dumps(plan.get("features", [])),
-                        plan.get("limitations", ""),
-                        user_query,
-                    ],
                 })
             
             logger.info(f"Stored {len(pricing_data.get('plans', []))} pricing plans")
@@ -327,30 +333,46 @@ class ChatSession:
         full_response = ""
         source_url = None
         used_web_search = False
-        
+        max_iterations = 25
+        iteration = 0
+
         process_query = True
         while process_query:
+            iteration += 1
+            if iteration > max_iterations:
+                print("\n[Max tool iterations reached]", flush=True)
+                break
             if response.stop_reason == "end_turn":
                 process_query = False
-            assistant_content = []
+
+            # Collect all content blocks from this response
+            assistant_content = list(response.content)
+            tool_results = []
+
             for content in response.content:
                 if content.type == 'text':
                     full_response += content.text
                     print(content.text, end="", flush=True)
-                    assistant_content.append(content)
                 elif content.type == 'tool_use':
                     tool_name = content.name
                     tool_args = content.input
-                    assistant_content.append(content)
 
                     server_name = self.tool_to_server.get(tool_name)
                     if not server_name:
                         logging.error(f"No server found for tool: {tool_name}")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: No server found for tool '{tool_name}'"
+                        })
                         continue
 
                     server = next((s for s in self.servers if s.name == server_name), None)
                     if not server:
                         logging.error(f"Server '{server_name}' not found")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: Server '{server_name}' not found"
+                        })
                         continue
 
                     try:
@@ -364,22 +386,27 @@ class ChatSession:
                         if extracted_url:
                             source_url = extracted_url
 
-                        messages = [
-                            {'role': 'user', 'content': query},
-                            {'role': 'assistant', 'content': assistant_content},
-                            {'role': 'user', 'content': [
-                                {'type': 'tool_result', 'tool_use_id': content.id, 'content': result_text}
-                            ]},
-                        ]
-                        response = self.anthropic.messages.create(
-                            max_tokens=2024,
-                            model='claude-sonnet-4-5-20250929',
-                            tools=self.available_tools,
-                            messages=messages,
-                        )
-                        assistant_content = []
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': result_text
+                        })
                     except Exception as e:
                         logging.error(f"Error executing tool {tool_name}: {e}")
+                        tool_results.append({
+                            'type': 'tool_result', 'tool_use_id': content.id,
+                            'content': f"Error: {e}"
+                        })
+
+            # If there were tool calls, append assistant + tool results and continue
+            if tool_results and process_query:
+                messages.append({'role': 'assistant', 'content': assistant_content})
+                messages.append({'role': 'user', 'content': tool_results})
+                response = self.anthropic.messages.create(
+                    max_tokens=2024,
+                    model='claude-sonnet-4-5-20250929',
+                    tools=self.available_tools,
+                    messages=messages,
+                )
         
         if self.data_extractor and full_response.strip():
             await self.data_extractor.extract_and_store_data(query, full_response.strip(), source_url)
