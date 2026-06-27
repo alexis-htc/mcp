@@ -322,10 +322,24 @@ class ChatSession:
 
     async def process_query(self, query: str) -> None:
         """Process a user query and extract/store relevant data."""
+        system_prompt = (
+            "You are a helpful pricing research assistant with access to web scraping, "
+            "SQLite database, and filesystem tools.\n\n"
+            "IMPORTANT: Before scraping any website, ALWAYS check the SQLite database first "
+            "by querying the pricing_plans table to see if relevant data already exists. "
+            "Use the read_query tool with a SELECT query on pricing_plans to check for existing data. "
+            "Only call scrape_websites if the database does not already contain the information needed "
+            "to answer the user's question.\n\n"
+            "Also check if scraped content files already exist by using the extract_scraped_info tool "
+            "before deciding to re-scrape a website.\n\n"
+            "When answering comparison or pricing questions, prefer using data already stored in the "
+            "database or previously scraped content over making new scrape requests."
+        )
         messages = [{'role': 'user', 'content': query}]
         response = self.anthropic.messages.create(
             max_tokens=2024,
-            model='claude-sonnet-4-5-20250929', 
+            model='claude-sonnet-4-5-20250929',
+            system=system_prompt,
             tools=self.available_tools,
             messages=messages
         )
@@ -449,11 +463,26 @@ class ChatSession:
             
         try:
             result = await self.sqlite_server.execute_tool("read_query", {
-                "query": "SELECT * FROM pricing_plans ORDER BY created_at DESC LIMIT 20"
+                "query": "SELECT company_name, plan_name, input_tokens, output_tokens, currency FROM pricing_plans ORDER BY created_at DESC LIMIT 5"
             })
+            result_text = ""
             for block in result.content:
                 if hasattr(block, "text"):
-                    print(block.text)
+                    result_text += block.text
+
+            rows = json.loads(result_text) if result_text.strip() else []
+
+            print("\n" + "=" * 60)
+            print("  Recently Stored Pricing Data (Last 5)")
+            print("=" * 60)
+            for row in rows:
+                company = row.get("company_name", "N/A")
+                plan = row.get("plan_name", "N/A")
+                input_cost = row.get("input_tokens", "N/A")
+                output_cost = row.get("output_tokens", "N/A")
+                currency = row.get("currency", "USD")
+                print(f"  • {company} | {plan} | Input: ${input_cost}/1M | Output: ${output_cost}/1M | {currency}")
+            print("=" * 60)
         except Exception as e:
             print(f"Error showing data: {e}")
 
