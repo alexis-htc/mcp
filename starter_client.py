@@ -1,4 +1,5 @@
 import asyncio
+import ast
 import json
 import logging
 import os
@@ -470,18 +471,26 @@ class ChatSession:
                 if hasattr(block, "text"):
                     result_text += block.text
 
-            rows = json.loads(result_text) if result_text.strip() else []
+            if not result_text.strip():
+                rows = []
+            else:
+                try:
+                    rows = json.loads(result_text)
+                except json.JSONDecodeError:
+                    rows = ast.literal_eval(result_text)
 
             print("\n" + "=" * 60)
             print("  Recently Stored Pricing Data (Last 5)")
             print("=" * 60)
             for row in rows:
-                company = row.get("company_name", "N/A")
-                plan = row.get("plan_name", "N/A")
-                input_cost = row.get("input_tokens", "N/A")
-                output_cost = row.get("output_tokens", "N/A")
-                currency = row.get("currency", "USD")
-                print(f"  • {company} | {plan} | Input: ${input_cost}/1M | Output: ${output_cost}/1M | {currency}")
+                company = row.get("company_name") or "N/A"
+                plan = row.get("plan_name") or "N/A"
+                input_cost = row.get("input_tokens")
+                output_cost = row.get("output_tokens")
+                currency = row.get("currency") or "USD"
+                input_str = f"${input_cost}/1M" if input_cost is not None else "N/A"
+                output_str = f"${output_cost}/1M" if output_cost is not None else "N/A"
+                print(f"  • {company} | {plan} | Input: {input_str} | Output: {output_str} | {currency}")
             print("=" * 60)
         except Exception as e:
             print(f"Error showing data: {e}")
