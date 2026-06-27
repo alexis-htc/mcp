@@ -239,22 +239,23 @@ class DataExtractor:
     async def extract_and_store_data(self, user_query: str, llm_response: str, 
                                    source_url: str = None) -> None:
         """Extract structured data from LLM response and store it."""
-        try:            
+        try:
+            truncated_response = llm_response[:4000] if len(llm_response) > 4000 else llm_response
             extraction_prompt = f"""
             Analyze this text and extract pricing information in JSON format:
             
-            Text: {llm_response}
+            Text: {truncated_response}
             
-            Extract pricing plans with this structure:
+            Extract pricing plans with this structure. Use the actual company name (e.g. "DeepInfra", "CloudRift AI") not generic names:
             {{
                 "company_name": "company name",
                 "plans": [
                     {{
-                        "plan_name": "plan name",
-                        "input_tokens": number or null,
-                        "output_tokens": number or null,
+                        "plan_name": "model or plan name",
+                        "input_tokens": price per 1M tokens as a number or null,
+                        "output_tokens": price per 1M tokens as a number or null,
                         "currency": "USD",
-                        "billing_period": "monthly/yearly/one-time",
+                        "billing_period": "per_token",
                         "features": ["feature1", "feature2"],
                         "limitations": "any limitations mentioned",
                         "query": "the user's query"
@@ -262,7 +263,7 @@ class DataExtractor:
                 ]
             }}
             
-            Return only valid JSON, no other text. Do not return your response enclosed in ```json```
+            Return only valid JSON, no other text. Do not wrap in ```json``` code blocks. If no specific pricing numbers are found, return {{"company_name": "unknown", "plans": []}}
             """
             
             extraction_response = await self._get_structured_extraction(extraction_prompt)
