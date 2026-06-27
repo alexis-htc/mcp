@@ -230,12 +230,15 @@ class DataExtractor:
             )
             
             # Try to find company context from the response (h3 headers like ### **DeepInfra**)
-            company_pattern = re.compile(r'###\s*\*{0,2}([\w\s]+?)\*{0,2}\s*$', re.MULTILINE)
+            company_pattern = re.compile(r'###\s*\*{0,2}([\w\s\-]+?)\*{0,2}\s*$', re.MULTILINE)
             companies = company_pattern.findall(llm_response)
+            # Filter out generic headers like "Summary"
+            skip_words = {"summary", "comparison", "conclusion", "notes", "key findings"}
+            companies = [c.strip() for c in companies if c.strip().lower() not in skip_words]
             if not companies:
                 company_pattern2 = re.compile(r'\*{1,2}([\w\s]+?)\*{1,2}\s*(?:✓|✗|offers|pricing|:)', re.IGNORECASE)
                 companies = company_pattern2.findall(llm_response)
-            current_company = companies[0].strip() if companies else "Unknown"
+            current_company = companies[0].split(' - ')[0].strip() if companies else "Unknown"
             
             # Find pricing table rows (common format from Claude responses)
             # Handles bold pricing: | **$0.32** | **$0.89** |
