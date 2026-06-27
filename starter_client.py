@@ -240,7 +240,7 @@ class DataExtractor:
                                    source_url: str = None) -> None:
         """Extract structured data from LLM response and store it."""
         try:
-            truncated_response = llm_response[:4000] if len(llm_response) > 4000 else llm_response
+            truncated_response = llm_response[-4000:] if len(llm_response) > 4000 else llm_response
             extraction_prompt = f"""
             Analyze this text and extract pricing information in JSON format:
             
