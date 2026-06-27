@@ -229,14 +229,18 @@ class DataExtractor:
                 re.IGNORECASE
             )
             
-            # Try to find company context from the response
-            company_pattern = re.compile(r'\*{1,2}([\w\s]+?)\*{1,2}\s*(?:✓|✗|offers|pricing|:)', re.IGNORECASE)
+            # Try to find company context from the response (h3 headers like ### **DeepInfra**)
+            company_pattern = re.compile(r'###\s*\*{0,2}([\w\s]+?)\*{0,2}\s*$', re.MULTILINE)
             companies = company_pattern.findall(llm_response)
+            if not companies:
+                company_pattern2 = re.compile(r'\*{1,2}([\w\s]+?)\*{1,2}\s*(?:✓|✗|offers|pricing|:)', re.IGNORECASE)
+                companies = company_pattern2.findall(llm_response)
             current_company = companies[0].strip() if companies else "Unknown"
             
             # Find pricing table rows (common format from Claude responses)
+            # Handles bold pricing: | **$0.32** | **$0.89** |
             table_row_pattern = re.compile(
-                r'\|\s*\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}\s*\|[^|]*\|\s*\$?([\d.]+)[^|]*\|\s*\$?([\d.]+)',
+                r'\|\s*\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}\s*\|[^|]*\|\s*\*{0,2}\$?([\d.]+)\*{0,2}[^|]*\|\s*\*{0,2}\$?([\d.]+)',
                 re.IGNORECASE
             )
             
