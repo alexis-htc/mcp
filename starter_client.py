@@ -216,88 +216,69 @@ class DataExtractor:
         except Exception as e:
             logging.error(f"Failed to setup data tables: {e}")
 
-    async def _get_structured_extraction(self, prompt: str) -> str:
-        """Use Claude to extract structured data."""
-        try:
-            response = self.anthropic.messages.create(
-                max_tokens=1024,
-                model='claude-sonnet-4-5-20250929',
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            
-            text_content = ""
-            for content in response.content:
-                if content.type == 'text':
-                    text_content += content.text
-            
-            return text_content.strip()
-            
-        except Exception as e:
-            logging.error(f"Error in structured extraction: {e}")
-            return '{"error": "extraction failed"}'
     
     async def extract_and_store_data(self, user_query: str, llm_response: str, 
                                    source_url: str = None) -> None:
-        """Extract structured data from LLM response and store it."""
+        """Extract structured data from LLM response and store it using regex patterns."""
         try:
-            truncated_response = llm_response[-4000:] if len(llm_response) > 4000 else llm_response
-            extraction_prompt = f"""
-            Analyze this text and extract pricing information in JSON format:
+            plans_stored = 0
+            # Pattern matches pricing lines like: $0.32 | $0.89 or $0.32/$0.89
+            # Look for model names followed by pricing in the response
+            price_pattern = re.compile(
+                r'\*{0,2}([\w\-\.]+(?:\s[\w\-\.]+)*)\*{0,2}\s*\|?\s*\$?([\d.]+)\s*[/|]\s*\$?([\d.]+)',
+                re.IGNORECASE
+            )
             
-            Text: {truncated_response}
+            # Try to find company context from the response
+            company_pattern = re.compile(r'\*{1,2}([\w\s]+?)\*{1,2}\s*(?:✓|✗|offers|pricing|:)', re.IGNORECASE)
+            companies = company_pattern.findall(llm_response)
+            current_company = companies[0].strip() if companies else "Unknown"
             
-            Extract pricing plans with this structure. Use the actual company name (e.g. "DeepInfra", "CloudRift AI") not generic names:
-            {{
-                "company_name": "company name",
-                "plans": [
-                    {{
-                        "plan_name": "model or plan name",
-                        "input_tokens": price per 1M tokens as a number or null,
-                        "output_tokens": price per 1M tokens as a number or null,
-                        "currency": "USD",
-                        "billing_period": "per_token",
-                        "features": ["feature1", "feature2"],
-                        "limitations": "any limitations mentioned",
-                        "query": "the user's query"
-                    }}
-                ]
-            }}
+            # Find pricing table rows (common format from Claude responses)
+            table_row_pattern = re.compile(
+                r'\|\s*\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}\s*\|[^|]*\|\s*\$?([\d.]+)[^|]*\|\s*\$?([\d.]+)',
+                re.IGNORECASE
+            )
             
-            Return only valid JSON, no other text. Do not wrap in ```json``` code blocks. If no specific pricing numbers are found, return {{"company_name": "unknown", "plans": []}}
-            """
+            matches = table_row_pattern.findall(llm_response)
             
-            extraction_response = await self._get_structured_extraction(extraction_prompt)
-            extraction_response = extraction_response.replace("```json\n", "").replace("```", "")
-            pricing_data = json.loads(extraction_response)
+            if not matches:
+                # Fallback: try simpler pattern for bullet-point format
+                bullet_pattern = re.compile(
+                    r'(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)[:\s]*\$?([\d.]+)\s*(?:input|/)\s*[/\s]*\$?([\d.]+)',
+                    re.IGNORECASE
+                )
+                matches = bullet_pattern.findall(llm_response)
             
-            for plan in pricing_data.get("plans", []):
+            for match in matches:
+                model_name = match[0].strip().strip('*')
+                input_price = match[1]
+                output_price = match[2]
+                
                 def _sql_escape(val):
                     if val is None:
                         return "NULL"
                     s = str(val).replace("'", "''")
                     return f"'{s}'"
-
-                company = _sql_escape(pricing_data.get("company_name", "unknown"))
-                plan_name = _sql_escape(plan.get("plan_name", "unknown"))
-                input_tokens = _sql_escape(plan.get("input_tokens"))
-                output_tokens = _sql_escape(plan.get("output_tokens"))
-                currency = _sql_escape(plan.get("currency", "USD"))
-                billing_period = _sql_escape(plan.get("billing_period", ""))
-                features = _sql_escape(json.dumps(plan.get("features", [])))
-                limitations = _sql_escape(plan.get("limitations", ""))
+                
+                company = _sql_escape(current_company)
+                plan = _sql_escape(model_name)
+                inp = input_price
+                out = output_price
                 source = _sql_escape(user_query)
-
+                
                 await self.sqlite_server.execute_tool("write_query", {
                     "query": f"""
                     INSERT INTO pricing_plans
                         (company_name, plan_name, input_tokens, output_tokens,
-                         currency, billing_period, features, limitations, source_query)
-                    VALUES ({company}, {plan_name}, {input_tokens}, {output_tokens},
-                            {currency}, {billing_period}, {features}, {limitations}, {source})
+                         currency, billing_period, features, source_query)
+                    VALUES ({company}, {plan}, {inp}, {out},
+                            'USD', 'per_token', '[]', {source})
                     """,
                 })
+                plans_stored += 1
             
-            logger.info(f"Stored {len(pricing_data.get('plans', []))} pricing plans")
+            logger.info(f"Stored {plans_stored} pricing plans")
             
         except Exception as e:
             logging.error(f"Error extracting pricing data: {e}")
