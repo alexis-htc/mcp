@@ -483,7 +483,7 @@ Latest Models
 
 Featured Models
 
-[nvidia/NVIDIA-Nemotron-3-Super-120B-A12B](https://deepinfra.com/google/gemma-4-31B-it) [Qwen/Qwen3-TTS](https://deepinfra.com/zai-org/GLM-5.1) [moonshotai/Kimi-K2.7-Code](https://deepinfra.com/XiaomiMiMo/MiMo-V2.5) [Qwen/Qwen3-Max-Thinking](https://deepinfra.com/black-forest-labs/FLUX-2-klein-9b) [deepseek-ai/DeepSeek-V4-Pro](https://deepinfra.com/deepseek-ai/DeepSeek-V4-Flash)
+[google/gemma-4-26B-A4B-it](https://deepinfra.com/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B) [Qwen/Qwen3.5-397B-A17B](https://deepinfra.com/Qwen/Qwen3-TTS) [Qwen/Qwen3-TTS-VoiceDesign](https://deepinfra.com/moonshotai/Kimi-K2.6) [deepseek-ai/DeepSeek-V3.2](https://deepinfra.com/zai-org/GLM-5.1) [black-forest-labs/FLUX-2-klein-9b](https://deepinfra.com/deepseek-ai/DeepSeek-V4-Pro)
 
 ![Built With Love in Palo Alto](https://deepinfra.com/_next/static/media/love.ce60156e.svg)
 

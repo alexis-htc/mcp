@@ -1,0 +1,339 @@
+[Skip to main content](https://www.cloudrift.ai/pricing#main-content)
+
+Pricing
+
+# GPU Rental Pricing
+
+Transparent pricing for GPU instances including RTX 4090, RTX 5090, RTX PRO 6000 and more. Use our calculator to estimate monthly costs for your AI workloads.
+
+[Launch Console](https://console.cloudrift.ai/console) [Contact Us](https://www.cloudrift.ai/pricing#contact)
+
+Compare GPUs
+
+## Complete GPU Pricing Chart
+
+Compare GPU rental costs across NVIDIA and AMD models. Rent RTX 4090, RTX 5090, RTX PRO 6000, L40S, H100, H200, and AMD MI350X with on-demand or reserved pricing for AI training and inference workloads.
+
+- ### V100 SXM3
+
+NVIDIA
+
+
+
+On‑Demand$0.28
+
+
+
+1 mo$0.25
+
+
+
+3 mo$0.24
+
+
+
+32 GB VRAM12800 GB StorageMax 16 GPUs
+
+- ### [RTX 4090](https://www.cloudrift.ai/rtx4090)
+
+NVIDIA
+
+
+
+On‑Demand$0.39
+
+
+
+1 mo$0.35
+
+
+
+3 mo$0.33
+
+
+
+96 GB VRAM500 GB StorageMax 10 GPUs
+
+- ### [L40S](https://www.cloudrift.ai/l40)
+
+NVIDIA
+
+
+
+On‑Demand$0.63
+
+
+
+1 mo$0.57
+
+
+
+3 mo$0.54
+
+
+
+48 GB VRAM500 GB StorageMax 8 GPUs
+
+- ### [RTX 5090](https://www.cloudrift.ai/rtx5090)
+
+NVIDIA
+
+
+
+On‑Demand$0.65
+
+
+
+1 mo$0.59
+
+
+
+3 mo$0.55
+
+
+
+32 GB VRAM1000 GB StorageMax 8 GPUs
+
+- ### [RTX PRO 6000](https://www.cloudrift.ai/rtxpro6000)
+
+NVIDIA
+
+
+
+On‑Demand$1.29
+
+
+
+1 mo$1.16
+
+
+
+3 mo$1.10
+
+
+
+96 GB VRAM1200 GB StorageMax 8 GPUs
+
+- ### [RTX PRO 6000 Max-Q](https://www.cloudrift.ai/rtxpro6000)
+
+NVIDIA
+
+
+
+On‑Demand$1.55
+
+
+
+1 mo$1.40
+
+
+
+3 mo$1.32
+
+
+
+96 GB VRAM1200 GB StorageMax 8 GPUs
+
+- ### H100
+
+NVIDIA
+
+
+
+On‑Demand—
+
+
+
+1 mo$1.70
+
+
+
+3 mo$1.33
+
+
+
+48 GB VRAM2000 GB StorageMax 8 GPUs
+
+- ### H200
+
+NVIDIA
+
+
+
+On‑Demand—
+
+
+
+1 mo$2.50
+
+
+
+3 mo$2.38
+
+
+
+141 GB VRAM2000 GB StorageMax 8 GPUs
+
+- ### [MI350X](https://www.cloudrift.ai/mi350x)
+
+AMD
+
+
+
+On‑Demand$3.65
+
+
+
+1 mo$3.29
+
+
+
+3 mo$3.10
+
+
+
+288 GB VRAM1800 GB StorageMax 8 GPUs
+
+- ### B200
+
+NVIDIA
+
+
+
+On‑Demand—
+
+
+
+1 mo$3.60
+
+
+
+3 mo$3.24
+
+
+
+180 GB VRAM200 GB StorageMax 8 GPUs
+
+
+| Model | Vendor | On-Demand ($/hr) | 1 Month ($/hr)↑ | 3 Month ($/hr) | VRAM | Local Storage | Max GPUs |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| V100 SXM3 | NVIDIA | $0.28 | $0.25 | $0.24 | 32 GB | 12800 GB | 16 |
+| [RTX 4090](https://www.cloudrift.ai/rtx4090) | NVIDIA | $0.39 | $0.35 | $0.33 | 96 GB | 500 GB | 10 |
+| [L40S](https://www.cloudrift.ai/l40) | NVIDIA | $0.63 | $0.57 | $0.54 | 48 GB | 500 GB | 8 |
+| [RTX 5090](https://www.cloudrift.ai/rtx5090) | NVIDIA | $0.65 | $0.59 | $0.55 | 32 GB | 1000 GB | 8 |
+| [RTX PRO 6000](https://www.cloudrift.ai/rtxpro6000) | NVIDIA | $1.29 | $1.16 | $1.10 | 96 GB | 1200 GB | 8 |
+| [RTX PRO 6000 Max-Q](https://www.cloudrift.ai/rtxpro6000) | NVIDIA | $1.55 | $1.40 | $1.32 | 96 GB | 1200 GB | 8 |
+| H100 | NVIDIA |  | $1.70 | $1.33 | 48 GB | 2000 GB | 8 |
+| H200 | NVIDIA |  | $2.50 | $2.38 | 141 GB | 2000 GB | 8 |
+| [MI350X](https://www.cloudrift.ai/mi350x) | AMD | $3.65 | $3.29 | $3.10 | 288 GB | 1800 GB | 8 |
+| B200 | NVIDIA |  | $3.60 | $3.24 | 180 GB | 200 GB | 8 |
+
+On-demand and reserved GPU pricing.
+
+Prices can fluctuate. Availability varies by demand and region.
+
+Estimate Costs
+
+## GPU Rental Calculator
+
+Calculate GPU rental costs in real-time. Compare on-demand and reserved pricing to optimize your cloud GPU budget.
+
+Open Calculator
+
+### Configuration
+
+Select GPU ModelV100 SXM3 (32GB NVIDIA) – $0.28/hrRTX 4090 (96GB NVIDIA) – $0.39/hrL40S (48GB NVIDIA) – $0.63/hrRTX 5090 (32GB NVIDIA) – $0.65/hrRTX PRO 6000 (96GB NVIDIA) – $1.29/hrRTX PRO 6000 Max-Q (96GB NVIDIA) – $1.55/hrH100 (48GB NVIDIA) – $1.70/hrH200 (141GB NVIDIA) – $2.50/hrMI350X (288GB AMD) – $3.65/hrB200 (180GB NVIDIA) – $3.60/hr
+
+Choose Reservation Period
+
+On-Demand
+
+No discount
+
+1 Week
+
+5% off
+
+1 Month
+
+10% off
+
+3 Months
+
+15% off
+
+Number of GPUs
+
+1 GPU
+
+Hours per Month
+
+Typical: 730 hours/month (24/7) · Max: 8,760 hours/year
+
+### Pricing Summary
+
+$459.90
+
+Total Cost
+
+Rate per GPU:$0.63/hr
+
+Duration:730 hours
+
+GPUs:1
+
+Effective rate:$0.63/hr per GPU
+
+[Rent this setup](https://console.cloudrift.ai/console)
+
+Save More
+
+## Save with Reservation Plans
+
+Choose from flexible reservation options to optimize costs for AI training on NVIDIA GPUs and other deep learning workloads. 1 week, 1 month, and 3 month reservations can be selected directly in the console. For 1-year reservations with an even higher discount, contact us.
+
+[Reach Out](https://www.cloudrift.ai/pricing#contact)
+
+Pricing FAQ
+
+## Common Questions About Pricing
+
+How much does it cost to rent a GPU on CloudRift?
+
+Per-GPU hourly rates are shown in the pricing table above, with on-demand and reserved options for each model. Entry-tier consumer GPUs like RTX 4090 sit at the low end, with RTX PRO 6000 and reserved-only datacenter GPUs at the high end. Rates update from live capacity.
+
+What is the cheapest GPU to rent for AI inference?
+
+For inference workloads that fit in 24GB of VRAM, RTX 4090 is typically the lowest hourly rate among the GPUs in the table above. For larger models, RTX 5090 and RTX PRO 6000 deliver better cost per token. CloudRift adds new capacity regularly, and older models such as NVIDIA V100 can be a more cost-effective fit for certain workflows. Contact us if your workload may suit a GPU not listed above. See our [LLM inference benchmarks](https://www.cloudrift.ai/blog/benchmarking-rtx-gpus-for-llm-inference) for throughput numbers.
+
+Is hourly GPU rental cheaper than buying a GPU?
+
+Hourly rental is cheaper than buying when GPU utilization stays below roughly 40 to 50 percent of the depreciation window of the hardware. For continuous workloads above that, reserved capacity or owned hardware tends to win on total cost. CloudRift offers both hourly rates and multi-month reservations so you can match the billing model to actual utilization.
+
+How does CloudRift pricing compare to other GPU clouds?
+
+CloudRift lists transparent per-GPU per-hour pricing with no minimum spend and no egress charges. Billing is per second of active runtime, similar to RunPod and Lambda. Hyperscaler GPU instances on AWS, GCP, and Azure typically run several times higher per hour at list price and require longer reservation commitments for discounts. For a specific comparison against another provider, contact us with the GPU type and duration you are evaluating.
+
+What is the difference between on-demand and reserved GPU pricing?
+
+On-demand is pay-as-you-go billed by the second while the instance is running. Reserved locks a specific GPU type for a fixed duration of 1 week, 1 month, 3 months, or 1 year at a lower hourly rate, paid upfront. Reserved capacity is the right choice when utilization is high and predictable.
+
+Can I rent a GPU for just one hour?
+
+Yes. On-demand instances have no minimum duration and bill in per-second increments while the instance is running. You can spin up a GPU for a few minutes of testing and pay only for that runtime.
+
+What is included in the hourly price?
+
+The hourly price covers compute, the attached local storage shown in the pricing table, networking, and standard support. There are no separate egress, ingress, or API-call charges on CloudRift.
+
+I don't see workstation GPUs like H100 or H200 in the console. Are they available?
+
+For GPU rentals that aren't available in the console (such as NVIDIA H100 and H200), we may still be able to help. Reach out [on Discord](https://discord.com/invite/u8YZZJXdnr) or via our contact form with your requirements and we'll work with you to find a solution.
+
+Get in touch
+
+## Ready to get started?
+
+Get in touch with our team to discuss your requirements and find the right solution for your infrastructure.
+
+[Contact Us](https://www.cloudrift.ai/contact)

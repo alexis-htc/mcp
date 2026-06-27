@@ -3,7 +3,7 @@
         "provider_name": "cloudrift",
         "url": "https://www.cloudrift.ai/inference",
         "domain": "www.cloudrift.ai",
-        "scraped_at": "2026-06-26T02:06:12.482279",
+        "scraped_at": "2026-06-27T01:11:23.457748",
         "formats": [
             "markdown",
             "html"
@@ -20,7 +20,7 @@
         "provider_name": "deepinfra",
         "url": "https://deepinfra.com/pricing",
         "domain": "deepinfra.com",
-        "scraped_at": "2026-06-26T02:06:13.330293",
+        "scraped_at": "2026-06-27T01:11:24.340048",
         "formats": [
             "markdown",
             "html"
@@ -37,7 +37,7 @@
         "provider_name": "fireworks",
         "url": "https://fireworks.ai/pricing#serverless-pricing",
         "domain": "fireworks.ai",
-        "scraped_at": "2026-06-26T02:06:15.015611",
+        "scraped_at": "2026-06-27T01:11:24.927068",
         "formats": [
             "markdown",
             "html"
@@ -54,7 +54,7 @@
         "provider_name": "groq",
         "url": "https://groq.com/pricing",
         "domain": "groq.com",
-        "scraped_at": "2026-06-26T02:06:15.777261",
+        "scraped_at": "2026-06-27T01:11:25.532801",
         "formats": [
             "markdown",
             "html"
@@ -66,5 +66,22 @@
         },
         "title": "Groq On-Demand Pricing for Tokens-as-a-Service | Groq is fast, low cost inference.",
         "description": "Groq powers leading openly-available AI models. View the pricing of our core models including GPT-OSS, Kimi K2, Qwen3 32B, and more."
+    },
+    "cloudrift_ai": {
+        "provider_name": "cloudrift_ai",
+        "url": "https://cloudrift.ai/pricing",
+        "domain": "cloudrift.ai",
+        "scraped_at": "2026-06-27T01:28:10.561227",
+        "formats": [
+            "markdown",
+            "html"
+        ],
+        "success": "true",
+        "content_files": {
+            "markdown": "cloudrift_ai_markdown.txt",
+            "html": "cloudrift_ai_html.txt"
+        },
+        "title": "Rent GPUs by the Hour: RTX 5090, PRO 6000, H100 Pricing",
+        "description": "Rent NVIDIA and AMD GPUs by the hour or reserved. RTX 4090, 5090, PRO 6000, L40S, H100, H200, MI350X with transparent hourly pricing and discounts."
     }
 }

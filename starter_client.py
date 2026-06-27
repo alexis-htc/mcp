@@ -1,4 +1,5 @@
 import asyncio
+import ast
 import json
 import logging
 import os
@@ -215,87 +216,94 @@ class DataExtractor:
         except Exception as e:
             logging.error(f"Failed to setup data tables: {e}")
 
-    async def _get_structured_extraction(self, prompt: str) -> str:
-        """Use Claude to extract structured data."""
-        try:
-            response = self.anthropic.messages.create(
-                max_tokens=1024,
-                model='claude-sonnet-4-5-20250929',
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            
-            text_content = ""
-            for content in response.content:
-                if content.type == 'text':
-                    text_content += content.text
-            
-            return text_content.strip()
-            
-        except Exception as e:
-            logging.error(f"Error in structured extraction: {e}")
-            return '{"error": "extraction failed"}'
     
     async def extract_and_store_data(self, user_query: str, llm_response: str, 
                                    source_url: str = None) -> None:
-        """Extract structured data from LLM response and store it."""
-        try:            
-            extraction_prompt = f"""
-            Analyze this text and extract pricing information in JSON format:
+        """Extract structured data from LLM response and store it using regex patterns."""
+        try:
+            plans_stored = 0
+            # Pattern matches pricing lines like: $0.32 | $0.89 or $0.32/$0.89
+            # Look for model names followed by pricing in the response
+            price_pattern = re.compile(
+                r'\*{0,2}([\w\-\.]+(?:\s[\w\-\.]+)*)\*{0,2}\s*\|?\s*\$?([\d.]+)\s*[/|]\s*\$?([\d.]+)',
+                re.IGNORECASE
+            )
             
-            Text: {llm_response}
+            # Try to find company context from the response (h3 headers like ### **DeepInfra**)
+            company_pattern = re.compile(r'###\s*\*{0,2}([\w\s\-]+?)\*{0,2}\s*$', re.MULTILINE)
+            companies = company_pattern.findall(llm_response)
+            # Filter out generic headers like "Summary"
+            skip_words = {"summary", "comparison", "conclusion", "notes", "key findings"}
+            companies = [c.strip() for c in companies if c.strip().lower() not in skip_words]
+            if not companies:
+                company_pattern2 = re.compile(r'\*{1,2}([\w\s]+?)\*{1,2}\s*(?:✓|✗|offers|pricing|:)', re.IGNORECASE)
+                companies = company_pattern2.findall(llm_response)
+            current_company = companies[0].split(' - ')[0].strip() if companies else "Unknown"
             
-            Extract pricing plans with this structure:
-            {{
-                "company_name": "company name",
-                "plans": [
-                    {{
-                        "plan_name": "plan name",
-                        "input_tokens": number or null,
-                        "output_tokens": number or null,
-                        "currency": "USD",
-                        "billing_period": "monthly/yearly/one-time",
-                        "features": ["feature1", "feature2"],
-                        "limitations": "any limitations mentioned",
-                        "query": "the user's query"
-                    }}
-                ]
-            }}
+            # Find pricing table rows (common format from Claude responses)
+            # Handles bold pricing: | **$0.32** | **$0.89** |
+            table_row_pattern = re.compile(
+                r'\|\s*\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}\s*\|[^|]*\|\s*\*{0,2}\$?([\d.]+)\*{0,2}[^|]*\|\s*\*{0,2}\$?([\d.]+)',
+                re.IGNORECASE
+            )
             
-            Return only valid JSON, no other text. Do not return your response enclosed in ```json```
-            """
+            matches = table_row_pattern.findall(llm_response)
             
-            extraction_response = await self._get_structured_extraction(extraction_prompt)
-            extraction_response = extraction_response.replace("```json\n", "").replace("```", "")
-            pricing_data = json.loads(extraction_response)
+            if not matches:
+                # Fallback: multi-line format where model name is on one line
+                # and input/output prices are on subsequent lines
+                # e.g.: "1. **DeepSeek-V3.2**\n   - Input: $0.26...\n   - Output: $0.38..."
+                lines = llm_response.split('\n')
+                current_model = None
+                current_input = None
+                for line in lines:
+                    model_match = re.search(r'\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}', line, re.IGNORECASE)
+                    if model_match and 'Input' not in line and 'Output' not in line:
+                        if current_model and current_input:
+                            # Save previous model's data
+                            pass
+                        current_model = model_match.group(1).strip()
+                        current_input = None
+                    
+                    input_match = re.search(r'[Ii]nput[^:]*:\s*\$?([\d.]+)', line)
+                    output_match = re.search(r'[Oo]utput[^:]*:\s*\$?([\d.]+)', line)
+                    
+                    if input_match and current_model:
+                        current_input = input_match.group(1)
+                    if output_match and current_model and current_input:
+                        matches.append((current_model, current_input, output_match.group(1)))
+                        current_model = None
+                        current_input = None
             
-            for plan in pricing_data.get("plans", []):
+            for match in matches:
+                model_name = match[0].strip().strip('*')
+                input_price = match[1]
+                output_price = match[2]
+                
                 def _sql_escape(val):
                     if val is None:
                         return "NULL"
                     s = str(val).replace("'", "''")
                     return f"'{s}'"
-
-                company = _sql_escape(pricing_data.get("company_name", "unknown"))
-                plan_name = _sql_escape(plan.get("plan_name", "unknown"))
-                input_tokens = _sql_escape(plan.get("input_tokens"))
-                output_tokens = _sql_escape(plan.get("output_tokens"))
-                currency = _sql_escape(plan.get("currency", "USD"))
-                billing_period = _sql_escape(plan.get("billing_period", ""))
-                features = _sql_escape(json.dumps(plan.get("features", [])))
-                limitations = _sql_escape(plan.get("limitations", ""))
+                
+                company = _sql_escape(current_company)
+                plan = _sql_escape(model_name)
+                inp = input_price
+                out = output_price
                 source = _sql_escape(user_query)
-
+                
                 await self.sqlite_server.execute_tool("write_query", {
                     "query": f"""
                     INSERT INTO pricing_plans
                         (company_name, plan_name, input_tokens, output_tokens,
-                         currency, billing_period, features, limitations, source_query)
-                    VALUES ({company}, {plan_name}, {input_tokens}, {output_tokens},
-                            {currency}, {billing_period}, {features}, {limitations}, {source})
+                         currency, billing_period, features, source_query)
+                    VALUES ({company}, {plan}, {inp}, {out},
+                            'USD', 'per_token', '[]', {source})
                     """,
                 })
+                plans_stored += 1
             
-            logger.info(f"Stored {len(pricing_data.get('plans', []))} pricing plans")
+            logger.info(f"Stored {plans_stored} pricing plans")
             
         except Exception as e:
             logging.error(f"Error extracting pricing data: {e}")
@@ -322,10 +330,24 @@ class ChatSession:
 
     async def process_query(self, query: str) -> None:
         """Process a user query and extract/store relevant data."""
+        system_prompt = (
+            "You are a helpful pricing research assistant with access to web scraping, "
+            "SQLite database, and filesystem tools.\n\n"
+            "IMPORTANT: Before scraping any website, ALWAYS check the SQLite database first "
+            "by querying the pricing_plans table to see if relevant data already exists. "
+            "Use the read_query tool with a SELECT query on pricing_plans to check for existing data. "
+            "Only call scrape_websites if the database does not already contain the information needed "
+            "to answer the user's question.\n\n"
+            "Also check if scraped content files already exist by using the extract_scraped_info tool "
+            "before deciding to re-scrape a website.\n\n"
+            "When answering comparison or pricing questions, prefer using data already stored in the "
+            "database or previously scraped content over making new scrape requests."
+        )
         messages = [{'role': 'user', 'content': query}]
         response = self.anthropic.messages.create(
             max_tokens=2024,
-            model='claude-sonnet-4-5-20250929', 
+            model='claude-sonnet-4-5-20250929',
+            system=system_prompt,
             tools=self.available_tools,
             messages=messages
         )
@@ -449,11 +471,34 @@ class ChatSession:
             
         try:
             result = await self.sqlite_server.execute_tool("read_query", {
-                "query": "SELECT * FROM pricing_plans ORDER BY created_at DESC LIMIT 20"
+                "query": "SELECT company_name, plan_name, input_tokens, output_tokens, currency FROM pricing_plans ORDER BY created_at DESC LIMIT 5"
             })
+            result_text = ""
             for block in result.content:
                 if hasattr(block, "text"):
-                    print(block.text)
+                    result_text += block.text
+
+            if not result_text.strip():
+                rows = []
+            else:
+                try:
+                    rows = json.loads(result_text)
+                except json.JSONDecodeError:
+                    rows = ast.literal_eval(result_text)
+
+            print("\n" + "=" * 60)
+            print("  Recently Stored Pricing Data (Last 5)")
+            print("=" * 60)
+            for row in rows:
+                company = row.get("company_name") or "N/A"
+                plan = row.get("plan_name") or "N/A"
+                input_cost = row.get("input_tokens")
+                output_cost = row.get("output_tokens")
+                currency = row.get("currency") or "USD"
+                input_str = f"${input_cost}/1M" if input_cost is not None else "N/A"
+                output_str = f"${output_cost}/1M" if output_cost is not None else "N/A"
+                print(f"  • {company} | {plan} | Input: {input_str} | Output: {output_str} | {currency}")
+            print("=" * 60)
         except Exception as e:
             print(f"Error showing data: {e}")
 
