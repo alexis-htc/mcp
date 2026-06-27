@@ -250,12 +250,30 @@ class DataExtractor:
             matches = table_row_pattern.findall(llm_response)
             
             if not matches:
-                # Fallback: try simpler pattern for bullet-point format
-                bullet_pattern = re.compile(
-                    r'(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)[:\s]*\$?([\d.]+)\s*(?:input|/)\s*[/\s]*\$?([\d.]+)',
-                    re.IGNORECASE
-                )
-                matches = bullet_pattern.findall(llm_response)
+                # Fallback: multi-line format where model name is on one line
+                # and input/output prices are on subsequent lines
+                # e.g.: "1. **DeepSeek-V3.2**\n   - Input: $0.26...\n   - Output: $0.38..."
+                lines = llm_response.split('\n')
+                current_model = None
+                current_input = None
+                for line in lines:
+                    model_match = re.search(r'\*{0,2}(DeepSeek[\w\-\.]*(?:\s[\w\-\.]*)*)\*{0,2}', line, re.IGNORECASE)
+                    if model_match and 'Input' not in line and 'Output' not in line:
+                        if current_model and current_input:
+                            # Save previous model's data
+                            pass
+                        current_model = model_match.group(1).strip()
+                        current_input = None
+                    
+                    input_match = re.search(r'[Ii]nput[^:]*:\s*\$?([\d.]+)', line)
+                    output_match = re.search(r'[Oo]utput[^:]*:\s*\$?([\d.]+)', line)
+                    
+                    if input_match and current_model:
+                        current_input = input_match.group(1)
+                    if output_match and current_model and current_input:
+                        matches.append((current_model, current_input, output_match.group(1)))
+                        current_model = None
+                        current_input = None
             
             for match in matches:
                 model_name = match[0].strip().strip('*')
